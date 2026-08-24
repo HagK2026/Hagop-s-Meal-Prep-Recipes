@@ -15,6 +15,8 @@
     --rust-soft: #F1DCD3;
     --gold: #B9821E;
     --gold-soft: #F3E4C2;
+    --wine: #6B2D42;
+    --wine-soft: #E7D7DC;
     --font-display: ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype", serif;
     --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -82,6 +84,7 @@
   }
   nav.tabs a.tab--breakfast{ border-bottom-color: var(--rust); }
   nav.tabs a.tab--lunch{ border-bottom-color: var(--gold); }
+  nav.tabs a.tab--dinner{ border-bottom-color: var(--wine); }
 
   main{
     max-width: 720px;
@@ -105,6 +108,7 @@
   }
   .tag--breakfast{ background: var(--rust-soft); color: var(--rust); }
   .tag--lunch{ background: var(--gold-soft); color: var(--gold); }
+  .tag--dinner{ background: var(--wine-soft); color: var(--wine); }
 
   /* ---------- Recipe card ---------- */
   .recipe-card{
@@ -116,6 +120,7 @@
   }
   .recipe-card[data-accent="breakfast"]{ border-top: 4px solid var(--rust); }
   .recipe-card[data-accent="lunch"]{ border-top: 4px solid var(--gold); }
+  .recipe-card[data-accent="dinner"]{ border-top: 4px solid var(--wine); }
 
   .recipe-head{ padding: 1.4rem 1.4rem 1rem; border-bottom: 1px dashed var(--line); }
   .recipe-head h3{
@@ -146,75 +151,6 @@
     font-size: 0.78rem;
     color: var(--ink-soft);
     margin: 0 0 0.7rem;
-  }
-
-  /* Macros */
-  .macros{
-    margin: 0 1.4rem 1.4rem;
-    padding: 1rem 1rem 0.6rem;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 5px;
-  }
-  .macros-head{
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-bottom: 0.7rem;
-  }
-  .macros-head h4{ margin: 0; }
-  .macro-note{
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    color: var(--ink-soft);
-    text-transform: none;
-    letter-spacing: 0;
-  }
-  .macro-grid{
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.6rem;
-  }
-  .macro-cell{
-    background: var(--paper);
-    border: 1px solid var(--line);
-    border-radius: 5px;
-    padding: 0.5rem 0.4rem;
-    text-align: center;
-  }
-  .macro-cell label{
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-    margin-bottom: 0.3rem;
-  }
-  .macro-cell input{
-    width: 100%;
-    border: none;
-    background: transparent;
-    text-align: center;
-    font-family: var(--font-mono);
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--ink);
-    padding: 0;
-    -moz-appearance: textfield;
-  }
-  .macro-cell input::-webkit-outer-spin-button,
-  .macro-cell input::-webkit-inner-spin-button{
-    -webkit-appearance: none;
-    margin: 0;
-  }
-  .macro-cell input:focus{ outline: none; }
-  .macro-cell .unit{
-    display: block;
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    color: var(--ink-soft);
-    margin-top: 0.1rem;
   }
 
   /* Ingredients checklist */
@@ -293,10 +229,6 @@
     letter-spacing: 0.04em;
   }
 
-  @media (max-width: 420px){
-    .macro-grid{ grid-template-columns: repeat(2, 1fr); }
-  }
-
   @media print{
     nav.tabs{ display: none; }
     .recipe-card{ break-inside: avoid; }
@@ -308,12 +240,13 @@
 <header class="masthead">
   <p class="eyebrow">Personal Recipe Box</p>
   <h1>Weekly Meal Prep</h1>
-  <p class="sub">Batch-cooked breakfast &amp; lunch for a 5-day work week</p>
+  <p class="sub">Batch-cooked breakfast, lunch &amp; dinner for a 5-day work week</p>
 </header>
 
 <nav class="tabs" id="tabs">
   <a href="#breakfast" class="tab tab--breakfast"><span class="tab-num">01</span>Breakfast</a>
   <a href="#lunch" class="tab tab--lunch"><span class="tab-num">02</span>Lunch</a>
+  <a href="#dinner" class="tab tab--dinner"><span class="tab-num">03</span>Dinner</a>
 </nav>
 
 <main>
@@ -332,35 +265,6 @@
         </div>
       </div>
       <div class="recipe-body">
-        <div class="macros">
-          <div class="macros-head">
-            <h4>Macros</h4>
-            <span class="macro-note">per serving · editable estimate</span>
-          </div>
-          <div class="macro-grid">
-            <div class="macro-cell">
-              <label>Calories</label>
-              <input type="number" value="400" inputmode="numeric">
-              <span class="unit">kcal</span>
-            </div>
-            <div class="macro-cell">
-              <label>Protein</label>
-              <input type="number" value="37" inputmode="numeric">
-              <span class="unit">g</span>
-            </div>
-            <div class="macro-cell">
-              <label>Carbs</label>
-              <input type="number" value="31" inputmode="numeric">
-              <span class="unit">g</span>
-            </div>
-            <div class="macro-cell">
-              <label>Fat</label>
-              <input type="number" value="14" inputmode="numeric">
-              <span class="unit">g</span>
-            </div>
-          </div>
-        </div>
-
         <h4>Ingredients</h4>
         <ul class="checklist">
           <li><label><input type="checkbox"><span class="amount">500 g</span><span class="item">Lean beef mince (5%)</span></label></li>
@@ -401,35 +305,6 @@
         </div>
       </div>
       <div class="recipe-body">
-        <div class="macros">
-          <div class="macros-head">
-            <h4>Macros</h4>
-            <span class="macro-note">per serving · editable estimate</span>
-          </div>
-          <div class="macro-grid">
-            <div class="macro-cell">
-              <label>Calories</label>
-              <input type="number" value="510" inputmode="numeric">
-              <span class="unit">kcal</span>
-            </div>
-            <div class="macro-cell">
-              <label>Protein</label>
-              <input type="number" value="60" inputmode="numeric">
-              <span class="unit">g</span>
-            </div>
-            <div class="macro-cell">
-              <label>Carbs</label>
-              <input type="number" value="36" inputmode="numeric">
-              <span class="unit">g</span>
-            </div>
-            <div class="macro-cell">
-              <label>Fat</label>
-              <input type="number" value="12" inputmode="numeric">
-              <span class="unit">g</span>
-            </div>
-          </div>
-        </div>
-
         <h4>Ingredients</h4>
         <ul class="checklist">
           <li><label><input type="checkbox"><span class="amount">1 kg</span><span class="item">Chicken breast, diced</span></label></li>
@@ -455,6 +330,51 @@
       </div>
       <div class="recipe-notes">
         <strong>Notes:</strong> Source: Coachcutrona (social media reel). Makes 6 portions — one extra beyond the 5-day work week, handy for a spare day or a bigger appetite.
+      </div>
+    </article>
+  </section>
+
+  <!-- ================= DINNER ================= -->
+  <section id="dinner" class="category">
+    <div class="category-title"><span class="tag tag--dinner">Dinner</span></div>
+
+    <article class="recipe-card" data-accent="dinner">
+      <div class="recipe-head">
+        <h3>Slow Cooker Lamb Shanks</h3>
+        <p class="recipe-desc">Slow-cooked lamb shanks in a rich red wine and rosemary sauce.</p>
+        <div class="meta-row">
+          <span class="meta-pill">8 portions</span>
+          <span class="meta-pill">Freezes well</span>
+        </div>
+      </div>
+      <div class="recipe-body">
+        <h4>Ingredients</h4>
+        <ul class="checklist">
+          <li><label><input type="checkbox"><span class="amount">1 tbsp</span><span class="item">Olive oil</span></label></li>
+          <li><label><input type="checkbox"><span class="amount">8</span><span class="item">Lamb shanks (2 kg total)</span></label></li>
+          <li><label><input type="checkbox"><span class="amount">1</span><span class="item">Brown onion, chopped</span></label></li>
+          <li><label><input type="checkbox"><span class="amount">3</span><span class="item">Garlic cloves, crushed</span></label></li>
+          <li><label><input type="checkbox"><span class="amount">1</span><span class="item">Celery stalk, chopped</span></label></li>
+          <li><label><input type="checkbox"><span class="amount">1 tbsp</span><span class="item">White sugar</span></label></li>
+          <li><label><input type="checkbox"><span class="amount">2 cups</span><span class="item">Red wine</span></label></li>
+          <li><label><input type="checkbox"><span class="amount">2 cups</span><span class="item">Beef stock</span></label></li>
+          <li><label><input type="checkbox"><span class="amount">2 tbsp</span><span class="item">Tomato paste</span></label></li>
+          <li><label><input type="checkbox"><span class="amount">1 tbsp</span><span class="item">Rosemary</span></label></li>
+        </ul>
+
+        <h4>Method</h4>
+        <ol class="steps">
+          <li><span class="step-num">1</span><div><p class="step-title">Heat the oil</p><p class="step-text">Heat the olive oil in a frying pan over medium-high heat.</p></div></li>
+          <li><span class="step-num">2</span><div><p class="step-title">Sear the lamb</p><p class="step-text">Sear the lamb shanks until browned all over, then transfer to the slow cooker.</p></div></li>
+          <li><span class="step-num">3</span><div><p class="step-title">Soften the aromatics</p><p class="step-text">In the same pan, cook the brown onion, garlic, and celery until soft.</p></div></li>
+          <li><span class="step-num">4</span><div><p class="step-title">Make the sauce</p><p class="step-text">Stir in the red wine, sugar, beef stock, and tomato paste.</p></div></li>
+          <li><span class="step-num">5</span><div><p class="step-title">Combine</p><p class="step-text">Pour the sauce over the lamb shanks in the slow cooker.</p></div></li>
+          <li><span class="step-num">6</span><div><p class="step-title">Slow cook</p><p class="step-text">Cook on low for 8 hours.</p></div></li>
+          <li><span class="step-num">7</span><div><p class="step-title">Finish</p><p class="step-text">Stir in the rosemary before serving.</p></div></li>
+        </ol>
+      </div>
+      <div class="recipe-notes">
+        <strong>Notes:</strong> Makes 8 portions (roughly one shank per serve). Since this makes more than a work week's worth, it freezes well — portion into containers once cooled and freeze what you won't use within 4–5 days.
       </div>
     </article>
   </section>
