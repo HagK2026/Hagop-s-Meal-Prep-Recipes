@@ -110,6 +110,48 @@
   .tag--lunch{ background: var(--gold-soft); color: var(--gold); }
   .tag--dinner{ background: var(--wine-soft); color: var(--wine); }
 
+  /* ---------- Contents ---------- */
+  .toc{
+    margin: 1.6rem 0 0;
+    padding: 1.1rem 1.2rem 1.3rem;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .toc-title{
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin: 0 0 0.9rem;
+  }
+  .toc-group + .toc-group{ margin-top: 0.9rem; }
+  .toc-cat{ margin: 0 0 0.4rem; }
+  .toc-list{ list-style: none; margin: 0; padding: 0; }
+  .toc-list li{ margin: 0; }
+  .toc-list a{
+    display: block;
+    padding: 0.4rem 0.1rem;
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .toc-list li:last-child a{ border-bottom: none; }
+  .toc-list a:active{ opacity: 0.6; }
+
+  .back-to-top{
+    display: inline-block;
+    margin: 0.9rem 1.4rem 1.3rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--line);
+  }
+
   /* ---------- Recipe card ---------- */
   .recipe-card{
     background: var(--paper);
@@ -117,6 +159,7 @@
     border-radius: 6px;
     margin-bottom: 1.5rem;
     overflow: hidden;
+    scroll-margin-top: 3.2rem;
   }
   .recipe-card[data-accent="breakfast"]{ border-top: 4px solid var(--rust); }
   .recipe-card[data-accent="lunch"]{ border-top: 4px solid var(--gold); }
@@ -251,11 +294,34 @@
 
 <main>
 
+  <nav class="toc" id="contents" aria-label="Recipe contents">
+    <p class="toc-title">Contents</p>
+    <div class="toc-group">
+      <p class="toc-cat tag tag--breakfast">Breakfast</p>
+      <ul class="toc-list">
+        <li><a href="#recipe-beef-muffins">English Beef Breakfast Muffins</a></li>
+      </ul>
+    </div>
+    <div class="toc-group">
+      <p class="toc-cat tag tag--lunch">Lunch</p>
+      <ul class="toc-list">
+        <li><a href="#recipe-fajita-rice">Chicken Fajita Rice Meal Prep</a></li>
+      </ul>
+    </div>
+    <div class="toc-group">
+      <p class="toc-cat tag tag--dinner">Dinner</p>
+      <ul class="toc-list">
+        <li><a href="#recipe-lamb-shanks">Slow Cooker Lamb Shanks</a></li>
+        <li><a href="#recipe-bolognese">Slow-Cooked Beef &amp; Pork Bolognese Sauce</a></li>
+      </ul>
+    </div>
+  </nav>
+
   <!-- ================= BREAKFAST ================= -->
   <section id="breakfast" class="category">
     <div class="category-title"><span class="tag tag--breakfast">Breakfast</span></div>
 
-    <article class="recipe-card" data-accent="breakfast">
+    <article class="recipe-card" data-accent="breakfast" id="recipe-beef-muffins">
       <div class="recipe-head">
         <h3>English Beef Breakfast Muffins</h3>
         <p class="recipe-desc">Foil-wrapped breakfast muffin sandwiches — make once, reheat all week.</p>
@@ -288,6 +354,7 @@
       <div class="recipe-notes">
         <strong>Notes:</strong> Assemble while everything is warm so the cheese melts slightly. To reheat, loosen the foil and warm in the oven at 180°C for 10–12 minutes, or microwave (foil removed) for 60–90 seconds. A pinch of salt and pepper in the mince goes a long way.
       </div>
+      <a class="back-to-top" href="#contents">↑ Back to contents</a>
     </article>
   </section>
 
@@ -295,7 +362,7 @@
   <section id="lunch" class="category">
     <div class="category-title"><span class="tag tag--lunch">Lunch</span></div>
 
-    <article class="recipe-card" data-accent="lunch">
+    <article class="recipe-card" data-accent="lunch" id="recipe-fajita-rice">
       <div class="recipe-head">
         <h3>Chicken Fajita Rice Meal Prep</h3>
         <p class="recipe-desc">High-protein, cheesy fajita rice bowl — great for batch-cooking work lunches.</p>
@@ -331,6 +398,7 @@
       <div class="recipe-notes">
         <strong>Notes:</strong> Source: Coachcutrona (social media reel). Makes 6 portions — one extra beyond the 5-day work week, handy for a spare day or a bigger appetite.
       </div>
+      <a class="back-to-top" href="#contents">↑ Back to contents</a>
     </article>
   </section>
 
@@ -338,7 +406,7 @@
   <section id="dinner" class="category">
     <div class="category-title"><span class="tag tag--dinner">Dinner</span></div>
 
-    <article class="recipe-card" data-accent="dinner">
+    <article class="recipe-card" data-accent="dinner" id="recipe-lamb-shanks">
       <div class="recipe-head">
         <h3>Slow Cooker Lamb Shanks</h3>
         <p class="recipe-desc">Slow-cooked lamb shanks in a rich red wine and rosemary sauce.</p>
@@ -376,9 +444,10 @@
       <div class="recipe-notes">
         <strong>Notes:</strong> Makes 8 portions (roughly one shank per serve). Since this makes more than a work week's worth, it freezes well — portion into containers once cooled and freeze what you won't use within 4–5 days.
       </div>
+      <a class="back-to-top" href="#contents">↑ Back to contents</a>
     </article>
 
-    <article class="recipe-card" data-accent="dinner">
+    <article class="recipe-card" data-accent="dinner" id="recipe-bolognese">
       <div class="recipe-head">
         <h3>Slow-Cooked Beef &amp; Pork Bolognese Sauce</h3>
         <p class="recipe-desc">Rich, slow-cooked beef and pork ragù with pancetta, red wine, and a touch of milk and nutmeg.</p>
@@ -433,6 +502,7 @@
       <div class="recipe-notes">
         <strong>Notes:</strong> Serves 3–4 as written — doubles cleanly in a larger slow cooker if you want it to stretch further across the work week. Freezes well in individual portions; reheat gently with a splash of water or stock to loosen the sauce.
       </div>
+      <a class="back-to-top" href="#contents">↑ Back to contents</a>
     </article>
   </section>
 
