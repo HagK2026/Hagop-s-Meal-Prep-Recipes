@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1b2a41">
+<title>Hop Runner</title>
+<style>
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: #1b2a41; touch-action: none;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  canvas { display: block; width: 100vw; height: 100vh; height: 100dvh; }
+  .controls {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+    pointer-events: none;
+  }
+  .group { display: flex; gap: 14px; }
+  .btn {
+    pointer-events: auto;
+    width: 76px; height: 76px; border-radius: 50%;
+    background: rgba(255,255,255,.18); border: 2px solid rgba(255,255,255,.45);
+    color: #fff; font-size: 30px; display: grid; place-items: center;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+  .btn.on { background: rgba(255,255,255,.4); }
+  .btn.jump { width: 92px; height: 92px; font-size: 18px; font-weight: 700; letter-spacing: .5px; }
+  @media (hover: hover) and (pointer: fine) { .controls { display: none; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="controls">
+  <div class="group">
+    <div class="btn" id="left" aria-label="Move left">&#9664;</div>
+    <div class="btn" id="right" aria-label="Move right">&#9654;</div>
+  </div>
+  <div class="btn jump" id="jump" aria-label="Jump">JUMP</div>
+</div>
+<script>
+(() => {
+  const cv = document.getElementById('c');
+  const ctx = cv.getContext('2d');
+  let W = 0, H = 0, scale = 1;
+  const VIEW_H = 400;            // world units visible vertically
+  const GROUND_Y = 250;          // top of ground in world units
+  const TILE = 40;
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    scale = (H / VIEW_H);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // ---------- Input ----------
+  const input = { left: false, right: false, jump: false, jumpPressed: false };
+  function bindBtn(id, key) {
+    const el = document.getElementById(id);
+    const down = e => { e.preventDefault(); if (key === 'jump' && !input.jump) input.jumpPressed = true; input[key] = true; el.classList.add('on'); };
+    const up = e => { e.preventDefault(); input[key] = false; el.classList.remove('on'); };
+    el.addEventListener('pointerdown', down);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+    el.addEventListener('pointerleave', up);
+  }
+  bindBtn('left', 'left'); bindBtn('right', 'right'); bindBtn('jump', 'jump');
+  const keys = { ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right',
+                 ArrowUp: 'jump', w: 'jump', W: 'jump', ' ': 'jump' };
+  window.addEventListener('keydown', e => {
+    const k = keys[e.key]; if (!k) return;
+    e.preventDefault();
+    if (k === 'jump' && !input.jump) input.jumpPressed = true;
+    input[k] = true;
+  });
+  window.addEventListener('keyup', e => { const k = keys[e.key]; if (k) input[k] = false; });
+  cv.addEventListener('pointerdown', () => { if (state !== 'play') input.jumpPressed = true; });
+
+  // ---------- Level generation ----------
+  // Segments: ground runs with gaps (pits), spikes, and blocks to hop on.
+  let ground, spikes, blocks, coins, genX;
+  function rnd(a, b) { return a + Math.random() * (b - a); }
+  function rint(a, b) { return Math.floor(rnd(a, b + 1)); }
+
+  function resetLevel() {
+    ground = [{ x: -400, w: 1200 }];
+    spikes = []; blocks = []; coins = [];
+    genX = 800;
+    while (genX < 3000) generate();
+  }
+
+  function generate() {
+    const difficulty = Math.min(1, genX / 12000);
+    const type = Math.random();
+    if (type < 0.35) {
+      // pit
+      const gap = rint(2, 2 + Math.round(difficulty * 1.5)) * TILE;
+      genX += gap;
+      const w = rint(5, 9) * TILE;
+      ground.push({ x: genX, w });
+      coins.push({ x: genX - gap / 2, y: GROUND_Y - 110, got: false });
+      genX += w;
+    } else if (type < 0.7) {
+      // ground with spikes
+      const w = rint(8, 12) * TILE;
+      ground.push({ x: genX, w });
+      const n = rint(1, 1 + Math.round(difficulty * 2));
+      const sx = genX + rint(2, 4) * TILE;
+      for (let i = 0; i < n; i++) spikes.push({ x: sx + i * TILE, y: GROUND_Y, w: TILE });
+      coins.push({ x: sx + (n * TILE) / 2, y: GROUND_Y - 120, got: false });
+      genX += w;
+    } else {
+      // ground with a block staircase
+      const w = rint(9, 13) * TILE;
+      ground.push({ x: genX, w });
+      const bx = genX + rint(2, 3) * TILE;
+      const h = rint(1, 2);
+      for (let i = 0; i < h; i++) blocks.push({ x: bx + i * TILE, y: GROUND_Y - (i + 1) * TILE, w: TILE, h: (i + 1) * TILE });
+      if (Math.random() < 0.5 + difficulty * 0.4) {
+        spikes.push({ x: bx + h * TILE + TILE, y: GROUND_Y, w: TILE });
+      }
+      coins.push({ x: bx + h * TILE, y: GROUND_Y - h * TILE - 70, got: false });
+      genX += w;
+    }
+  }
+
+  // ---------- Player ----------
+  const P = { w: 26, h: 34 };
+  const GRAV = 1900, JUMP_V = 720, MOVE = 260, ACCEL = 2200, FRICTION = 2400;
+  let p, camX, state, score, coinCount, best, deadTimer, coyote, jumpBuffer;
+  try { best = +localStorage.getItem('hopRunnerBest') || 0; } catch { best = 0; }
+
+  function reset() {
+    resetLevel();
+    p = { x: 60, y: GROUND_Y - P.h, w: P.w, h: P.h, vx: 0, vy: 0, onGround: true, face: 1, squash: 0 };
+    camX = 0; score = 0; coinCount = 0; deadTimer = 0; coyote = 0; jumpBuffer = 0;
+  }
+  reset();
+  state = 'title';
+
+  function solids() {
+    const out = [];
+    for (const g of ground) out.push({ x: g.x, y: GROUND_Y, w: g.w, h: 400 });
+    for (const b of blocks) out.push(b);
+    return out;
+  }
+
+  function overlap(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+
+  function die() {
+    state = 'dead'; deadTimer = 0;
+    const s = Math.floor(score) + coinCount * 10;
+    if (s > best) { best = s; try { localStorage.setItem('hopRunnerBest', best); } catch {} }
+    if (navigator.vibrate) try { navigator.vibrate(80); } catch {}
+  }
+
+  function update(dt) {
+    if (state === 'title' || state === 'dead') {
+      deadTimer += dt;
+      if (input.jumpPressed && (state === 'title' || deadTimer > 0.5)) {
+        if (state === 'dead') reset();
+        state = 'play';
+      }
+      input.jumpPressed = false;
+      return;
+    }
+
+    // horizontal movement
+    const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+    if (dir) { p.vx += dir * ACCEL * dt; p.face = dir; }
+    else {
+      const f = FRICTION * dt;
+      p.vx = Math.abs(p.vx) <= f ? 0 : p.vx - Math.sign(p.vx) * f;
+    }
+    p.vx = Math.max(-MOVE, Math.min(MOVE, p.vx));
+
+    // jump (with coyote time + buffer)
+    coyote = p.onGround ? 0.1 : coyote - dt;
+    jumpBuffer = input.jumpPressed ? 0.12 : jumpBuffer - dt;
+    input.jumpPressed = false;
+    if (jumpBuffer > 0 && coyote > 0) {
+      p.vy = -JUMP_V; p.onGround = false; coyote = 0; jumpBuffer = 0; p.squash = -0.25;
+    }
+    if (!input.jump && p.vy < -250) p.vy = -250; // variable jump height
+
+    p.vy = Math.min(p.vy + GRAV * dt, 1200);
+
+    const sol = solids();
+    // move X
+    p.x += p.vx * dt;
+    if (p.x < camX) { p.x = camX; p.vx = Math.max(0, p.vx); }
+    for (const s of sol) {
+      if (overlap(p, s)) {
+        if (p.vx > 0) p.x = s.x - P.w; else if (p.vx < 0) p.x = s.x + s.w;
+        p.vx = 0;
+      }
+    }
+    // move Y
+    const wasAir = !p.onGround;
+    p.y += p.vy * dt; p.onGround = false;
+    for (const s of sol) {
+      if (overlap(p, s)) {
+        if (p.vy > 0) { p.y = s.y - P.h; p.onGround = true; if (wasAir) p.squash = 0.3; }
+        else if (p.vy < 0) p.y = s.y + s.h;
+        p.vy = 0;
+      }
+    }
+    p.squash *= Math.pow(0.001, dt);
+
+    // hazards
+    for (const sp of spikes) {
+      const hit = { x: sp.x + 8, y: sp.y - 20, w: sp.w - 16, h: 20 };
+      if (overlap(p, hit)) return die();
+    }
+    if (p.y > VIEW_H + 60) return die();
+
+    // coins
+    for (const c of coins) {
+      if (!c.got && Math.abs(p.x + P.w / 2 - c.x) < 22 && Math.abs(p.y + P.h / 2 - c.y) < 26) { c.got = true; coinCount++; }
+    }
+
+    // camera follows forward only
+    const viewW = W / scale;
+    const target = p.x - viewW * 0.35;
+    if (target > camX) camX += (target - camX) * Math.min(1, dt * 8);
+    score = Math.max(score, p.x / TILE);
+
+    // extend level & drop old pieces
+    while (genX < camX + viewW + 1200) generate();
+    const cut = camX - 400;
+    ground = ground.filter(g => g.x + g.w > cut);
+    spikes = spikes.filter(s => s.x + s.w > cut);
+    blocks = blocks.filter(b => b.x + b.w > cut);
+    coins = coins.filter(c => c.x > cut);
+  }
+
+  // ---------- Render ----------
+  const clouds = Array.from({ length: 8 }, (_, i) => ({ x: i * 260 + rnd(0, 120), y: rnd(30, 140), s: rnd(0.7, 1.3) }));
+  const hills = Array.from({ length: 10 }, (_, i) => ({ x: i * 220, h: rnd(60, 140), w: rnd(180, 300) }));
+  let t = 0;
+
+  function draw() {
+    const viewW = W / scale;
+    ctx.save();
+    ctx.scale(scale, scale);
+
+    // sky
+    const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+    g.addColorStop(0, '#6ec3f4'); g.addColorStop(1, '#d6f0ff');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, viewW, VIEW_H);
+
+    // clouds (parallax 0.2)
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    const cspan = 260 * clouds.length;
+    for (const c of clouds) {
+      let x = ((c.x - camX * 0.2) % cspan + cspan) % cspan - 120;
+      cloud(x, c.y, c.s);
+    }
+    // hills (parallax 0.5)
+    ctx.fillStyle = '#8fd18a';
+    const hspan = 220 * hills.length;
+    for (const h of hills) {
+      let x = ((h.x - camX * 0.5) % hspan + hspan) % hspan - 150;
+      ctx.beginPath(); ctx.ellipse(x, GROUND_Y + 10, h.w / 2, h.h, 0, Math.PI, 0); ctx.fill();
+    }
+
+    ctx.translate(-camX, 0);
+
+    // ground
+    for (const gr of ground) {
+      ctx.fillStyle = '#8a5a3b'; ctx.fillRect(gr.x, GROUND_Y, gr.w, VIEW_H - GROUND_Y + 40);
+      ctx.fillStyle = '#4caf50'; ctx.fillRect(gr.x, GROUND_Y, gr.w, 12);
+      ctx.fillStyle = '#3e8e41'; ctx.fillRect(gr.x, GROUND_Y + 10, gr.w, 3);
+      ctx.fillStyle = 'rgba(0,0,0,.12)';
+      for (let x = gr.x + 12; x < gr.x + gr.w - 6; x += 34) ctx.fillRect(x, GROUND_Y + 28 + ((x * 7) % 30), 8, 5);
+    }
+    // blocks
+    for (const b of blocks) {
+      for (let y = b.y; y < b.y + b.h; y += TILE) {
+        ctx.fillStyle = '#c98b4f'; ctx.fillRect(b.x, y, b.w, TILE);
+        ctx.strokeStyle = '#8a5a3b'; ctx.lineWidth = 3; ctx.strokeRect(b.x + 1.5, y + 1.5, b.w - 3, TILE - 3);
+        ctx.beginPath(); ctx.moveTo(b.x + 6, y + 6); ctx.lineTo(b.x + b.w - 6, y + TILE - 6);
+        ctx.moveTo(b.x + b.w - 6, y + 6); ctx.lineTo(b.x + 6, y + TILE - 6); ctx.stroke();
+      }
+    }
+    // spikes
+    for (const s of spikes) {
+      ctx.fillStyle = '#7d8590';
+      for (let i = 0; i < 2; i++) {
+        const sx = s.x + i * (s.w / 2);
+        ctx.beginPath(); ctx.moveTo(sx + 2, s.y); ctx.lineTo(sx + s.w / 4, s.y - 24); ctx.lineTo(sx + s.w / 2 - 2, s.y); ctx.fill();
+      }
+      ctx.fillStyle = '#c9d1d9';
+      for (let i = 0; i < 2; i++) {
+        const sx = s.x + i * (s.w / 2);
+        ctx.beginPath(); ctx.moveTo(sx + s.w / 4, s.y - 24); ctx.lineTo(sx + s.w / 4 + 3, s.y - 10); ctx.lineTo(sx + s.w / 4 - 1, s.y - 10); ctx.fill();
+      }
+    }
+    // coins
+    for (const c of coins) {
+      if (c.got) continue;
+      const bob = Math.sin(t * 4 + c.x) * 4;
+      const sx = Math.abs(Math.cos(t * 3 + c.x * 0.1));
+      ctx.fillStyle = '#ffcc33'; ctx.beginPath(); ctx.ellipse(c.x, c.y + bob, 10 * sx + 1, 10, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#e09b00'; ctx.lineWidth = 2; ctx.stroke();
+    }
+
+    // player
+    drawPlayer();
+
+    ctx.restore();
+
+    // HUD
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 4;
+    ctx.font = '700 20px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    const top = 14;
+    const hud = `${Math.floor(score)} m   ● ${coinCount}   Best ${best}`;
+    ctx.strokeText(hud, 16, top); ctx.fillText(hud, 16, top);
+
+    if (state === 'title') overlay('HOP RUNNER', 'Move with ◀ ▶  ·  JUMP to hop\nAvoid spikes and pits, grab coins', 'Tap to start');
+    if (state === 'dead') overlay('OUCH!', `Score ${Math.floor(score) + coinCount * 10}  (${Math.floor(score)} m + ${coinCount}×10)\nBest ${best}`, deadTimer > 0.5 ? 'Tap to retry' : '');
+  }
+
+  function cloud(x, y, s) {
+    ctx.beginPath();
+    ctx.arc(x, y, 18 * s, 0, Math.PI * 2);
+    ctx.arc(x + 20 * s, y - 8 * s, 22 * s, 0, Math.PI * 2);
+    ctx.arc(x + 44 * s, y, 18 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawPlayer() {
+    const sq = p.squash;
+    const w = P.w * (1 + sq), h = P.h * (1 - sq);
+    const x = p.x + P.w / 2, y = p.y + P.h;
+    ctx.save(); ctx.translate(x, y);
+    // shadow-ish feet
+    const run = p.onGround && Math.abs(p.vx) > 20 ? Math.sin(t * 20) * 4 : 0;
+    ctx.fillStyle = '#2b2d42';
+    ctx.fillRect(-w / 2 + 3, -6, 8, 6 + (run > 0 ? -run : 0));
+    ctx.fillRect(w / 2 - 11, -6, 8, 6 + (run < 0 ? run : 0));
+    // body
+    ctx.fillStyle = '#ef476f';
+    roundRect(-w / 2, -h, w, h - 4, 8); ctx.fill();
+    // eye
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(p.face * 5, -h + 12, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1b2a41';
+    ctx.beginPath(); ctx.arc(p.face * 7, -h + 12, 3, 0, Math.PI * 2); ctx.fill();
+    // headband
+    ctx.fillStyle = '#ffd166'; ctx.fillRect(-w / 2, -h + 2, w, 4);
+    ctx.restore();
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+
+  function overlay(title, sub, hint) {
+    ctx.fillStyle = 'rgba(27,42,65,.55)'; ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
+    const big = Math.min(56, W / 8);
+    ctx.font = `800 ${big}px system-ui, sans-serif`;
+    ctx.fillText(title, W / 2, H * 0.32);
+    ctx.font = `500 ${Math.min(20, W / 22)}px system-ui, sans-serif`;
+    sub.split('\n').forEach((line, i) => ctx.fillText(line, W / 2, H * 0.32 + big * 0.9 + i * 28));
+    if (hint) {
+      ctx.globalAlpha = 0.6 + 0.4 * Math.sin(t * 4);
+      ctx.font = `700 ${Math.min(24, W / 18)}px system-ui, sans-serif`;
+      ctx.fillText(hint, W / 2, H * 0.32 + big * 0.9 + 90);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---------- Loop ----------
+  let last = performance.now();
+  function frame(now) {
+    let dt = Math.min(0.033, (now - last) / 1000); last = now; t += dt;
+    // substep for stable collisions
+    const steps = 2;
+    for (let i = 0; i < steps; i++) { update(dt / steps); if (i === 0 && state !== 'play') break; }
+    draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
